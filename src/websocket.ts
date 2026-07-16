@@ -1,16 +1,96 @@
 import { Notice } from 'obsidian'
-import type { JennPluginSettings } from './types'
+import type {
+  AppendNotePayload,
+  DescribeFolderPayload,
+  JennPluginSettings,
+  SearchNotesPayload,
+  WriteNotePayload,
+} from './types'
 import { JennVault } from './vault'
+
+type RpcType =
+  | 'write_note'
+  | 'append_note'
+  | 'get_vault_tree'
+  | 'describe_folder'
+  | 'search_notes'
+  | 'list_destinations'
+  | 'ping'
 
 type StatusCallback = (status: 'connected' | 'disconnected' | 'connecting') => void
 
 interface IncomingMsg {
   id: string
-  status?: string
-  type?: string
-  payload?: Record<string, unknown>
-  result?: Record<string, unknown>
+  status?: 'ok' | 'error'
+  type?: RpcType
+  payload?: unknown
+  result?: unknown
   error?: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string')
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function parseWriteNotePayload(value: unknown): WriteNotePayload {
+  if (!isRecord(value) || typeof value.title !== 'string' || typeof value.content !== 'string') {
+    throw new Error('invalid write_note payload')
+  }
+  if (value.folder !== undefined && typeof value.folder !== 'string') {
+    throw new Error('invalid write_note payload')
+  }
+  if (value.tags !== undefined && !isStringArray(value.tags)) {
+    throw new Error('invalid write_note payload')
+  }
+  if (value.date !== undefined && value.date !== null && typeof value.date !== 'string') {
+    throw new Error('invalid write_note payload')
+  }
+  if (value.source !== undefined && value.source !== null && typeof value.source !== 'string') {
+    throw new Error('invalid write_note payload')
+  }
+
+  return value as unknown as WriteNotePayload
+}
+
+function parseAppendNotePayload(value: unknown): AppendNotePayload {
+  if (!isRecord(value) || typeof value.path !== 'string' || typeof value.content !== 'string') {
+    throw new Error('invalid append_note payload')
+  }
+  if (value.as_section !== undefined && value.as_section !== null && typeof value.as_section !== 'string') {
+    throw new Error('invalid append_note payload')
+  }
+
+  return value as unknown as AppendNotePayload
+}
+
+function parseDescribeFolderPayload(value: unknown): DescribeFolderPayload {
+  if (!isRecord(value) || typeof value.path !== 'string') {
+    throw new Error('invalid describe_folder payload')
+  }
+
+  return value as unknown as DescribeFolderPayload
+}
+
+function parseSearchNotesPayload(value: unknown): SearchNotesPayload {
+  if (!isRecord(value) || typeof value.query !== 'string') {
+    throw new Error('invalid search_notes payload')
+  }
+  if (value.folder !== undefined && value.folder !== null && typeof value.folder !== 'string') {
+    throw new Error('invalid search_notes payload')
+  }
+  if (value.limit !== undefined && typeof value.limit !== 'number') {
+    throw new Error('invalid search_notes payload')
+  }
+
+  return value as unknown as SearchNotesPayload
 }
 
 function uuid(): string {
@@ -116,7 +196,9 @@ export class JennWebSocket {
     this.socket.addEventListener('message', async (evt) => {
       let msg: IncomingMsg
       try {
-        msg = JSON.parse(typeof evt.data === 'string' ? evt.data : String(evt.data))
+        const parsed: unknown = JSON.parse(typeof evt.data === 'string' ? evt.data : String(evt.data))
+        if (!isRecord(parsed) || typeof parsed.id !== 'string') return
+        msg = parsed as unknown as IncomingMsg
       } catch {
         return
       }
@@ -145,9 +227,10 @@ export class JennWebSocket {
       try {
         const result = await this.route(msg)
         this.socket?.send(JSON.stringify({ id: msg.id, status: 'ok', result }))
-      } catch (err: any) {
-        new Notice(`Jenn: ошибка при ${msg.type} — ${err.message}`)
-        this.socket?.send(JSON.stringify({ id: msg.id, status: 'error', error: err.message || 'handler error' }))
+      } catch (err: unknown) {
+        const message = getErrorMessage(err)
+        new Notice(`Jenn: ошибка при ${msg.type} — ${message}`)
+        this.socket?.send(JSON.stringify({ id: msg.id, status: 'error', error: message || 'handler error' }))
       }
     })
 
@@ -184,20 +267,20 @@ export class JennWebSocket {
     }, delay)
   }
 
-  private async route(msg: IncomingMsg): Promise<Record<string, unknown>> {
+  private async route(msg: IncomingMsg): Promise<unknown> {
     switch (msg.type) {
       case 'write_note':
-        return (await this.vault.writeNote(msg.payload as any)) as any
+        return this.vault.writeNote(parseWriteNotePayload(msg.payload))
       case 'append_note':
-        return (await this.vault.appendNote(msg.payload as any)) as any
+        return this.vault.appendNote(parseAppendNotePayload(msg.payload))
       case 'get_vault_tree':
-        return (await this.vault.getVaultTree()) as any
+        return this.vault.getVaultTree()
       case 'describe_folder':
-        return (await this.vault.describeFolder((msg.payload as any)?.path || '')) as any
+        return this.vault.describeFolder(parseDescribeFolderPayload(msg.payload).path)
       case 'search_notes':
-        return (await this.vault.searchNotes(msg.payload as any)) as any
+        return this.vault.searchNotes(parseSearchNotesPayload(msg.payload))
       case 'list_destinations':
-        return (await this.vault.listDestinations()) as any
+        return this.vault.listDestinations()
       case 'ping':
         return { status: 'ok', vault: this.vault.vaultName }
       default:

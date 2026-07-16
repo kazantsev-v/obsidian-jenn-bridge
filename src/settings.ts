@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Notice } from 'obsidian'
+import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from 'obsidian'
 import type JennPlugin from './main'
 
 export class JennSettingTab extends PluginSettingTab {
@@ -9,11 +9,80 @@ export class JennSettingTab extends PluginSettingTab {
     this.plugin = plugin
   }
 
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [{
+      type: 'group',
+      heading: 'Подключение',
+      items: [
+        {
+          name: 'Статус',
+          desc: this.getStatusText(),
+          render: (setting) => {
+            setting
+              .setDesc(this.getStatusText())
+              .addButton(btn => btn
+                .setButtonText(this.plugin.wsStatus === 'connected' ? 'Отключиться' : 'Подключиться')
+                .onClick(() => {
+                  if (this.plugin.wsStatus === 'connected') {
+                    this.plugin.ws.close()
+                  } else {
+                    this.plugin.ws.open()
+                  }
+                })
+              )
+          },
+        },
+        {
+          name: 'Сервер',
+          desc: 'Адрес Jenn Core (скопировать из конфига output)',
+          control: {
+            type: 'text',
+            key: 'serverUrl',
+            placeholder: 'ws://localhost:11235',
+          },
+        },
+        {
+          name: 'API Key',
+          desc: 'Токен для подключения к Jenn Core',
+          control: {
+            type: 'text',
+            key: 'apiKey',
+            placeholder: 'uuid',
+          },
+        },
+        {
+          name: 'Папка по умолчанию',
+          desc: 'Папка для новых заметок (пусто = корень vault)',
+          control: {
+            type: 'text',
+            key: 'defaultFolder',
+            placeholder: 'Jenn Inbox',
+          },
+        },
+        {
+          name: 'Автопереподключение',
+          desc: 'Автоматически переподключаться при разрыве',
+          control: {
+            type: 'toggle',
+            key: 'reconnect',
+          },
+        },
+      ],
+    }]
+  }
+
+  private getStatusText(): string {
+    return this.plugin.wsStatus === 'connected' ? '🟢 Подключено' :
+      this.plugin.wsStatus === 'connecting' ? '🟡 Подключаюсь…' : '🔴 Отключено'
+  }
+
   display(): void {
     const { containerEl } = this
     containerEl.empty()
 
-    containerEl.createEl('h2', { text: 'Jenn Bridge — настройки' })
+    new Setting(containerEl)
+      .setName('Подключение')
+      .setHeading()
 
     const status = this.plugin.wsStatus === 'connected' ? '🟢 Подключено' :
       this.plugin.wsStatus === 'connecting' ? '🟡 Подключаюсь…' : '🔴 Отключено'
@@ -79,12 +148,5 @@ export class JennSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings()
         })
       )
-  }
-
-  private genKey(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
-    })
   }
 }

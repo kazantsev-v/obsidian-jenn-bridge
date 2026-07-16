@@ -2,7 +2,7 @@
   "id": "jenn-bridge",
   "name": "Jenn Bridge",
   "version": "1.0.0",
-  "minAppVersion": "1.0.0",
+  "minAppVersion": "1.13.0",
   "description": "Route data via WebSocket — Jenn Core output endpoint / Маршрутизация данных из Jenn Core через WebSocket.",
   "author": "Jenn",
   "authorUrl": "https://jenn.dev",

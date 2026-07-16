@@ -3,6 +3,14 @@ import { DEFAULT_SETTINGS, type JennPluginSettings } from './types'
 import { JennWebSocket } from './websocket'
 import { JennSettingTab } from './settings'
 
+interface SettingsHost {
+  setting?: {
+    openTabById?: (id: string) => void
+    open?: () => void
+    containerEl?: HTMLElement
+  }
+}
+
 export default class JennPlugin extends Plugin {
   settings!: JennPluginSettings
   ws!: JennWebSocket
@@ -49,11 +57,12 @@ export default class JennPlugin extends Plugin {
       id: 'jenn-open-settings',
       name: 'Открыть настройки',
       callback: () => {
-        const setting = (this.app as any).setting
+        const settingHost = this.app as unknown as SettingsHost
+        const setting = settingHost.setting
         if (setting?.openTabById) {
           setting.openTabById('obsidian-jenn-bridge')
         } else if (setting?.containerEl) {
-          setting.open()
+          setting.open?.()
           new Notice('Откройте вкладку Jenn Bridge в настройках')
         }
       },

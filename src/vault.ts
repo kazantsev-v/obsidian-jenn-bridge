@@ -3,7 +3,6 @@ import {
   TFile,
   TFolder,
   normalizePath,
-  Notice,
 } from 'obsidian'
 import type {
   VaultFileEntry,
@@ -64,7 +63,6 @@ export class JennVault {
     }
 
     let existing = await this.app.vault.read(file)
-    const sep = existing.endsWith('\n') ? '' : '\n'
     const section = payload.as_section
       ? `\n\n## ${payload.as_section}\n\n`
       : '\n\n---\n\n'
