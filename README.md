@@ -1,6 +1,6 @@
 # Jenn Bridge
 
-**Obsidian plugin — WebSocket endpoint for [Jenn Core]
+**Obsidian plugin — WebSocket endpoint for [Jenn Core]**
 
 Acts as an output destination in Jenn's data routing system. Receives notes, appends content, searches the vault — all over a secure WebSocket connection.
 
