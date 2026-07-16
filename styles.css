@@ -1,0 +1,30 @@
+.jenn-bridge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jenn-bridge-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.jenn-bridge-status-dot.connected {
+  background-color: var(--color-green);
+}
+
+.jenn-bridge-status-dot.disconnected {
+  background-color: var(--color-red);
+}
+
+.jenn-bridge-status-dot.connecting {
+  background-color: var(--color-yellow);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-jenn-bridge",
+  "name": "Jenn Bridge",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Route data into Obsidian via WebSocket — Jenn Core output endpoint / Маршрутизация данных из Jenn Core в Obsidian через WebSocket",
+  "author": "Jenn",
+  "authorUrl": "https://jenn.dev",
+  "isDesktopOnly": true
+}
